@@ -1,0 +1,167 @@
+---
+title: "Visualization using plotly and Leaflet packages for Corona Disease"
+author: "Ozancan Özdemir"
+date: "02 02 2020"
+output: html_document
+---
+
+In this tutorial, I will try to show to create an interactive chart by using ```plotly``` and ```leaflet```  function by using Corona dataset taken from the Kaggle. (https://www.kaggle.com/sudalairajkumar/novel-corona-virus-2019-dataset) 
+The source of the dataset: **Johns Hopkins University**
+
+
+
+
+```{r,message=FALSE,warning=FALSE}
+#install.packages("plotly")
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(hrbrthemes)
+```
+
+The dataset shows the following information related to nCoV virus, known as Corona.
+
++ County that the virus seen. 
+
++ Provinces that virus seen.
+
++ Total number of patients having the virus.
+
++ Number of deaths caused by virus.
+
++ Total number of recovered patiens. 
+
+
+Before reading the dataset, I divided dataset into two parts. I extracted the date column manually, then made a correction to simplify the analysis. 
+
+```{r}
+corona=read.csv("ncov_2019.csv",header=T,sep=";")
+date=read.table("date.txt",header=T)
+corona=data.frame(corona,date)
+head(corona)
+```
+
+To draw the plot, I changed the class of the date object as date. 
+
+```{r}
+corona$Date=as.Date(corona$Date)
+```
+
+**Total Number of People having the disease between 22.01.2020-31.01.2020**
+
+I calculated the sum of the confirmed number of patients with respect to dates between 22.01.2020-31.01.2020.
+
+```{r}
+sum_data=group_by(corona, Date) %>% summarize(sum_confirm = sum(Confirmed))
+sum_data
+```
+
+```{r}
+p <-sum_data %>%
+  ggplot( aes(x=Date, y=sum_confirm)) +
+  geom_area(fill="#69b3a2", alpha=0.5) +
+  geom_line(color="#69b3a2") +
+  ylab("Total Number of Patients")+
+  theme_ipsum()
+
+# Turn it interactive with ggplotly
+p <- ggplotly(p)
+p
+
+```
+
+It is seen that the spread of the disease approximately shows linearly increasing trend over time. 
+
+
+**Total Number of Deaths caused by the disease between 22.01.2020-31.01.2020**
+
+The total number of deaths caused by the disease is also visualized below. 
+
+```{r}
+death_data=group_by(corona, Date) %>% summarize(sum_death = sum(Deaths))
+death_data
+```
+
+```{r}
+p1 <-death_data %>%
+  ggplot( aes(x=Date, y=sum_death)) +
+  geom_area(fill="#CC0000", alpha=0.5) +
+  geom_line(color="#CC0000") +
+  ylab("Total Number of Deaths caused by Corona") +
+  theme_ipsum()
+
+# Turn it interactive with ggplotly
+p1 <- ggplotly(p1)
+p1
+
+```
+
+As seen that, the number of death patients shows similar behavior like spread of the disease. The number of deaths unfortunately shows increasing trend over time. 
+
+
+
+**Total Number of Recovered Patients  between 22.01.2020-31.01.2020**
+
+
+Now, the total number of recovered patients is also visualized below. 
+
+
+```{r}
+rec_data=group_by(corona, Date) %>% summarize(sum_rec = sum(Recovered))
+rec_data
+```
+
+```{r}
+p2 <-rec_data %>%
+  ggplot( aes(x=Date, y=sum_rec)) +
+  geom_area(fill="#D55E00", alpha=0.5) +
+  geom_line(color="#D55E00") +
+  ylab("Total Number of Deaths caused by Corona") +
+  theme_ipsum()
+
+# Turn it interactive with ggplotly
+p2 <- ggplotly(p2)
+p2
+
+```
+
+
+**Drawing a map using Leaflet**
+
+First of all, we created the dataset showing total number of disease for each country. 
+
+```{r}
+country_data=group_by(corona, Country) %>% summarize(total= sum(Confirmed))
+country_data
+```
+
+In order to draw a map using leaflet, we need to have lattiude and longitude of the countries. The following data set provides these information for the countries listed above. 
+
+```{r}
+lattitude_longitude=read.table("lattitude_longitude.txt",sep = "\t",header=T)
+lattitude_longitude
+```
+
+Then, merge the data sets. 
+
+```{r}
+leaflet_data=data.frame(country_data,lattitude_longitude)
+leaflet_data
+```
+
+
+
+```{r,message=FALSE,warning=FALSE}
+library(leaflet)
+# Center points for the map
+center_lon <- median(leaflet_data$longitude, na.rm = TRUE)
+center_lat <- median(leaflet_data$latitude, na.rm = TRUE)
+
+leaflet(leaflet_data) %>%
+  addProviderTiles("Esri") %>%
+  addCircles(~leaflet_data$longitude, ~leaflet_data$latitude, weight =~leaflet_data$total^(1/2), popup = ~leaflet_data$name, color = "red") %>%
+  setView(lng = center_lon, lat = center_lat, zoom = 2)
+
+```
+
+You can find the codes and dataset from my GitHub page. (https://github.com/ozancanozdemir)
