@@ -1,4 +1,4 @@
-# CoronaDataVisualization
+# Corona Data Visualization with Leaflet and Plotly
 
 **Türkçe Açıklama**
 
